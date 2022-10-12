@@ -84,7 +84,7 @@ def main(arena):
     dx = enemy["x"] - me["x"]
     dy = enemy["y"] - me["y"]
 
-    if abs(dx) > 3 or abs(dy) > 3:
+    if abs(dx) > 1 or abs(dy) > 1:
         bx = "W" if dx < 0 else "E" if dx > 0 else ""
         by = "N" if dy < 0 else "S" if dy > 0 else ""
 
