@@ -28,6 +28,6 @@ jobs:
       - uses: actions/setup-ruby@v1
         with:
           ruby-version: '3.1.2'
-      - uses: actions/setip-haskell@v1.1
+      - uses: actions/setup-haskell@v1.1
       - run: bash ./build.sh
       - run: ./battlebots
