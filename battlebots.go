@@ -104,6 +104,7 @@ func newWeapons() *Weapons {
 }
 
 func main() {
+	// Register your bot here
 	bots := []*Bot{
 		newBot("huggy", "python ./bots/huggy.py"),
 		newBot("nop", "java bots.Nop"),
@@ -111,11 +112,13 @@ func main() {
 
 	numBots := len(bots)
 
+	// Get working directory
 	botDir, err := os.Getwd()
 	if err != nil {
 		panic(err)
 	}
 
+	// Keep track of the number of bouts and matches won by each bot
 	boutsWon := make([]int, numBots)
 	matchesWon := make([]int, numBots)
 
@@ -124,9 +127,11 @@ func main() {
 		matchesWon[i] = 0
 	}
 
+	// Iterate over the bots in pairs, round-robin style
 	for b1 := 0; b1 < numBots-1; b1++ {
 		for b2 := b1 + 1; b2 < numBots; b2++ {
 			bot1, bot2 := bots[b1], bots[b2]
+			// Bouts won this match
 			bot1Bouts, bot2Bouts := 0, 0
 
 			fmt.Printf("%s vs %s\n", bots[b1].name, bots[b2].name)
@@ -134,6 +139,7 @@ func main() {
 			for bout := 0; bout < BOUTSPERMATCH; bout++ {
 				fmt.Printf("%d ", bout)
 
+				// Bots start in opposite corners, with 10 HP each
 				bot1.pos, bot1.hp = Vector{1, 1}, 10
 				bot2.pos, bot2.hp = Vector{WIDTH - 2, HEIGHT - 2}, 10
 
@@ -142,9 +148,11 @@ func main() {
 				paralyzedRoundsRemaining := 0
 
 				for round := 0; round < ROUNDSPERBOUT; round++ {
+					// Render the arena as an ASCII string, from the perspective of each bot
 					bot1Arena := drawArena(bot1, bot2, weapons)
 					bot2Arena := drawArena(bot2, bot1, weapons)
 
+					// Execute the bots, get their output
 					bot1.action = runBot(bot1, bot1Arena, botDir)
 					bot2.action = runBot(bot2, bot2Arena, botDir)
 
@@ -153,6 +161,7 @@ func main() {
 						fmt.Println(bot1Arena)
 					}
 
+					// Do movement
 					if paralyzedRoundsRemaining == 0 {
 						moveBots(bot1, bot2)
 						checkLandmines(bot1, bot2, weapons)
@@ -163,6 +172,7 @@ func main() {
 						}
 					}
 
+					// Deploy EMPs
 					if bot1.action == "P" {
 						paralyzedRoundsRemaining = 2
 						bot1.hp -= 1
@@ -171,17 +181,22 @@ func main() {
 						bot2.hp -= 1
 					}
 
+					// Deploy other weapons
 					deployWeapons(bot1, bot2, weapons)
 					deployWeapons(bot2, bot1, weapons)
 
+					// Move projectiles
 					moveBullets(bot1, bot2, weapons)
 					moveMissiles(bot1, bot2, weapons)
 
+					// If a bot has died, end the bout
 					if bot1.hp < 1 || bot2.hp < 1 {
 						break
 					}
 				}
 
+				// The bot with the highest HP takes the bout
+				// Equal HP => draw, no points to either bot
 				if bot1.hp < bot2.hp {
 					bot2Bouts += 1
 					boutsWon[b2] += 1
@@ -191,6 +206,7 @@ func main() {
 				}
 			}
 
+			// The bot with the most bout wins takes the match
 			if bot1Bouts < bot2Bouts {
 				matchesWon[b2] += 1
 			} else if bot2Bouts < bot1Bouts {
@@ -201,6 +217,7 @@ func main() {
 		}
 	}
 
+	// Print the results table
 	fmt.Println("\nResults:")
 	fmt.Println("Bot\tMatches\tBouts")
 	for i := 0; i < numBots; i++ {
@@ -208,25 +225,30 @@ func main() {
 	}
 }
 
+// Create an empty arena matrix
 func initArena() [][]rune {
 	arena := make([][]rune, HEIGHT)
 	for r := range arena {
 		arena[r] = make([]rune, WIDTH)
+		for c := range arena[r] {
+			arena[r][c] = '.'
+		}
 	}
-	clearArena(arena)
 	return arena
 }
 
+// Render the arena from the perspective of a given bot
 func drawArena(bot *Bot, enemy *Bot, weapons *Weapons) string {
 	var arena strings.Builder
 	var stats strings.Builder
 
 	grid := initArena()
 
+	// Draw bot stats
 	stats.WriteString(fmt.Sprintf("Y hp=%d\n", bot.hp))
 	stats.WriteString(fmt.Sprintf("X hp=%d\n", enemy.hp))
 
-	clearArena(grid)
+	// Draw weapons & their stats
 	for i := range weapons.bullets {
 		b := weapons.bullets[i]
 		grid[b.pos.y][b.pos.x] = 'B'
@@ -239,11 +261,11 @@ func drawArena(bot *Bot, enemy *Bot, weapons *Weapons) string {
 		stats.WriteString(fmt.Sprintf("M x=%d y=%d dir=%s\n", m.pos.x, m.pos.y, m.dir))
 	}
 
+	// Draw bots on grid
 	grid[bot.pos.y][bot.pos.x] = 'Y'
 	grid[enemy.pos.y][enemy.pos.x] = 'X'
-	// fmt.Println(bot.x, bot.y)
-	// fmt.Println(enemy.x, enemy.y)
 
+	// Write all grid tiles to string builder
 	for r := range grid {
 		for c := range grid[r] {
 			arena.WriteRune(grid[r][c])
@@ -254,6 +276,7 @@ func drawArena(bot *Bot, enemy *Bot, weapons *Weapons) string {
 	return arena.String() + stats.String()
 }
 
+// Execute a bot process and capture stdout
 func runBot(bot *Bot, arena string, dir string) string {
 	fields := strings.Fields(bot.cmd)
 	cmd := exec.Command(fields[0], fields[1:]...)
@@ -268,6 +291,7 @@ func runBot(bot *Bot, arena string, dir string) string {
 	return strings.TrimSpace(string(stdout))
 }
 
+// Move bots according to their most recent actions
 func moveBots(bot1 *Bot, bot2 *Bot) {
 	// Move bot 1
 	bot1Moved := false
@@ -295,13 +319,17 @@ func moveBots(bot1 *Bot, bot2 *Bot) {
 	}
 }
 
+// Check if either bot is standing on a landmine
 func checkLandmines(bot1 *Bot, bot2 *Bot, weapons *Weapons) {
 	for _, l := range weapons.landmines {
 		if bot1.pos.equals(l.pos) {
+			// Direct damage
 			bot1.hp -= 2
+			// Splash damage
 			if bot2.pos.isAdjacentTo(l.pos) {
 				bot2.hp -= 1
 			}
+			// Remove the landmine from play
 			l.dead = true
 		} else if bot2.pos.equals(l.pos) {
 			bot2.hp -= 2
@@ -312,6 +340,7 @@ func checkLandmines(bot1 *Bot, bot2 *Bot, weapons *Weapons) {
 		}
 	}
 
+	// Dispose of dead landmines
 	n := 0
 	for _, l := range weapons.landmines {
 		if !l.dead {
@@ -322,13 +351,16 @@ func checkLandmines(bot1 *Bot, bot2 *Bot, weapons *Weapons) {
 	weapons.landmines = weapons.landmines[:n]
 }
 
+// Fire weapons according to a bots' most recent actions
 func deployWeapons(bot *Bot, enemy *Bot, weapons *Weapons) {
 	fields := strings.Fields(bot.action)
 
+	// Must have a weapon and a direction
 	if len(fields) != 2 {
 		return
 	}
 
+	// Direction must be valid
 	if _, ok := directions[fields[1]]; !ok {
 		return
 	}
@@ -345,14 +377,14 @@ func deployWeapons(bot *Bot, enemy *Bot, weapons *Weapons) {
 	} else if weapon == "L" {
 		targetPos := bot.pos.add(directions[dir])
 		if targetPos.inBounds() {
-			var landmine *Landmine
+			landmine := &Landmine{targetPos, false}
 
-			landmine.pos = targetPos
-
+			// Check if the landmine will hit an existing landmine
 			var collision bool
 			for i := range weapons.landmines {
 				l := weapons.landmines[i]
 				if landmine.pos.equals(l.pos) {
+					// Do splash damage
 					if bot.pos.isAdjacentTo(l.pos) {
 						bot.hp -= 1
 					}
@@ -373,6 +405,7 @@ func deployWeapons(bot *Bot, enemy *Bot, weapons *Weapons) {
 	}
 }
 
+// Move bullets along their trajectories, checking for collisions with the walls or bots
 func moveBullets(bot1 *Bot, bot2 *Bot, weapons *Weapons) {
 	for _, b := range weapons.bullets {
 		v := directions[b.dir]
@@ -398,6 +431,7 @@ func moveBullets(bot1 *Bot, bot2 *Bot, weapons *Weapons) {
 		}
 	}
 
+	// Remove dead bullets
 	n := 0
 	for _, b := range weapons.bullets {
 		if !b.dead {
@@ -408,6 +442,7 @@ func moveBullets(bot1 *Bot, bot2 *Bot, weapons *Weapons) {
 	weapons.bullets = weapons.bullets[:n]
 }
 
+// Move missiles along their trajectories, checking for collisions with the walls or bots
 func moveMissiles(bot1 *Bot, bot2 *Bot, weapons *Weapons) {
 	for _, m := range weapons.missiles {
 		v := directions[m.dir]
@@ -418,8 +453,10 @@ func moveMissiles(bot1 *Bot, bot2 *Bot, weapons *Weapons) {
 				m.pos = newPos
 
 				if bot1.pos.equals(m.pos) {
+					// Direct damage
 					bot1.hp -= 3
 					if bot2.pos.isAdjacentTo(m.pos) {
+						// Splash damage
 						bot2.hp -= 1
 					}
 					m.dead = true
@@ -435,6 +472,7 @@ func moveMissiles(bot1 *Bot, bot2 *Bot, weapons *Weapons) {
 					break
 				}
 			} else {
+				// If hitting a wall, do splash damage
 				if bot1.pos.isAdjacentTo(m.pos) {
 					bot1.hp -= 1
 				}
@@ -446,6 +484,7 @@ func moveMissiles(bot1 *Bot, bot2 *Bot, weapons *Weapons) {
 		}
 	}
 
+	// Remove dead missiles
 	n := 0
 	for _, m := range weapons.missiles {
 		if !m.dead {
@@ -455,12 +494,4 @@ func moveMissiles(bot1 *Bot, bot2 *Bot, weapons *Weapons) {
 	}
 	weapons.missiles = weapons.missiles[:n]
 
-}
-
-func clearArena(arena [][]rune) {
-	for r := range arena {
-		for c := range arena[r] {
-			arena[r][c] = '.'
-		}
-	}
 }
