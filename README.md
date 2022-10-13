@@ -70,7 +70,7 @@ Once your bot has parsed the input string and decided its next move, it should p
 
 ## Competing
 
-To enter the tournament, all you need to do is write your bot, and create a pull request to add the bot to the `bots` folder in this repository and the list of bots in `battlebots.go` (line 50). If your bot has a build step, you'll also need to add the appropriate steps to `build.sh`.
+To enter the tournament, all you need to do is write your bot, and create a pull request to add the bot to the `bots` folder in this repository and the list of bots in `battlebots.go` (line 108). If your bot has a build step, you'll also need to add the appropriate steps to `build.sh`.
 
 Each bot should consist of a single source file with a unique name. See `huggy.py` and `Nop.java` for examples. The bot can be written in any language, as long as it can be executed from an Ubuntu command-line environment with a single command, and can take command-line arguments. It should be noted that extra configuration is required to support new languages. The list of supported languages is provided below. If you wish to write a bot in another language, get in touch and support for that language can be arranged.
 
